@@ -1,0 +1,1204 @@
+openapi: 3.0.0
+info:
+  title: PetPicShowcase API
+  description: API for managing pet photo galleries, social interactions, and challenges
+  version: 1.0.0
+  contact:
+    name: PetPicShowcase Support
+    email: api-support@petpicshowcase.com
+    url: https://developers.petpicshowcase.com
+servers:
+  - url: https://api.petpicshowcase.com/v1
+    description: Production API server
+  - url: https://api.staging.petpicshowcase.com/v1
+    description: Staging API server
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /login:
+    post:
+      summary: Authenticate a user
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: PetPicShowcase_session=abc123; Path=/; HttpOnly
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /logout:
+    post:
+      summary: End the current user session
+      tags:
+        - Authentication
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: PetPicShowcase_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly
+  
+  /galleries:
+    get:
+      summary: Get all galleries for the authenticated user
+      tags:
+        - Galleries
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        '200':
+          description: List of galleries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  galleries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GallerySummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      summary: Create a new gallery
+      tags:
+        - Galleries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - templateId
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                templateId:
+                  type: string
+      responses:
+        '201':
+          description: Gallery created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gallery'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /galleries/{id}:
+    get:
+      summary: Get a specific gallery by ID
+      tags:
+        - Galleries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Gallery details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryWithPhotos'
+        '404':
+          description: Gallery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    put:
+      summary: Update a gallery
+      tags:
+        - Galleries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                templateId:
+                  type: string
+      responses:
+        '200':
+          description: Gallery updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Gallery'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Gallery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete a gallery
+      tags:
+        - Galleries
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Gallery deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Gallery not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /photos:
+    post:
+      summary: Add a photo to a gallery
+      tags:
+        - Photos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - galleryId
+                - imageData
+              properties:
+                galleryId:
+                  type: string
+                imageData:
+                  type: string
+                  format: byte
+                  description: Base64-encoded image data
+                caption:
+                  type: string
+                order:
+                  type: integer
+      responses:
+        '201':
+          description: Photo added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /photos/{id}:
+    put:
+      summary: Update a photo
+      tags:
+        - Photos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caption:
+                  type: string
+                order:
+                  type: integer
+      responses:
+        '200':
+          description: Photo updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Delete a photo
+      tags:
+        - Photos
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Photo deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /photos/reorder:
+    post:
+      summary: Reorder photos in a gallery
+      tags:
+        - Photos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - galleryId
+                - photoOrders
+              properties:
+                galleryId:
+                  type: string
+                photoOrders:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - id
+                      - order
+                    properties:
+                      id:
+                        type: string
+                      order:
+                        type: integer
+      responses:
+        '200':
+          description: Photos reordered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /templates:
+    get:
+      summary: Get all available templates
+      tags:
+        - Templates
+      responses:
+        '200':
+          description: List of templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  templates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Template'
+  
+  /templates/{id}:
+    get:
+      summary: Get a specific template by ID
+      tags:
+        - Templates
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Template details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Template'
+        '404':
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /subscriptions/create-checkout:
+    post:
+      summary: Create a checkout session for subscription
+      tags:
+        - Subscriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plan
+                - successUrl
+                - cancelUrl
+              properties:
+                plan:
+                  type: string
+                  enum: [basic, premium]
+                successUrl:
+                  type: string
+                  format: uri
+                cancelUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessionId:
+                    type: string
+                  url:
+                    type: string
+                    format: uri
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /subscriptions/current:
+    get:
+      summary: Get the current user's subscription
+      tags:
+        - Subscriptions
+      responses:
+        '200':
+          description: Current subscription
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          description: No active subscription found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /subscriptions/cancel:
+    post:
+      summary: Cancel the current user's subscription
+      tags:
+        - Subscriptions
+      responses:
+        '200':
+          description: Subscription canceled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: No active subscription found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /social/feed:
+    get:
+      summary: Get the social feed
+      tags:
+        - Social
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        '200':
+          description: Social feed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SocialPhoto'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+  
+  /social/like:
+    post:
+      summary: Like a photo
+      tags:
+        - Social
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photoId
+              properties:
+                photoId:
+                  type: string
+      responses:
+        '200':
+          description: Photo liked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  likeId:
+                    type: string
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /social/like/{photoId}:
+    delete:
+      summary: Unlike a photo
+      tags:
+        - Social
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Photo unliked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Like not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /social/comment:
+    post:
+      summary: Add a comment to a photo
+      tags:
+        - Social
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photoId
+                - content
+              properties:
+                photoId:
+                  type: string
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Comment added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /social/comment/{id}:
+    delete:
+      summary: Delete a comment
+      tags:
+        - Social
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /challenges:
+    get:
+      summary: Get all challenges
+      tags:
+        - Challenges
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, upcoming, past]
+          description: Filter by status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of items per page
+      responses:
+        '200':
+          description: List of challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenges:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChallengeSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      summary: Create a new challenge
+      tags:
+        - Challenges
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - startDate
+                - endDate
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Challenge created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /challenges/{id}:
+    get:
+      summary: Get a specific challenge by ID
+      tags:
+        - Challenges
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Challenge details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChallengeWithSubmissions'
+        '404':
+          description: Challenge not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /challenges/{id}/submit:
+    post:
+      summary: Submit a photo to a challenge
+      tags:
+        - Challenges
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - photoId
+              properties:
+                photoId:
+                  type: string
+      responses:
+        '201':
+          description: Submission added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submission'
+        '400':
+          description: Invalid request data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Challenge or photo not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /challenges/{challengeId}/submit/{photoId}:
+    delete:
+      summary: Remove a submission from a challenge
+      tags:
+        - Challenges
+      parameters:
+        - name: challengeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: photoId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Submission removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Submission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: PetPicShowcase_session
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        subscriptionTier:
+          type: string
+          enum: [basic, premium]
+        createdAt:
+          type: string
+          format: date-time
+    
+    Gallery:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        templateId:
+          type: string
+        userId:
+          type: string
+        published:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    GallerySummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        templateId:
+          type: string
+        photoCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        template:
+          type: object
+          properties:
+            name:
+              type: string
+            thumbnail:
+              type: string
+              format: uri
+    
+    GalleryWithPhotos:
+      allOf:
+        - $ref: '#/components/schemas/Gallery'
+        - type: object
+          properties:
+            photos:
+              type: array
+              items:
+                $ref: '#/components/schemas/Photo'
+            template:
+              $ref: '#/components/schemas/Template'
+    
+    Photo:
+      type: object
+      properties:
+        id:
+          type: string
+        galleryId:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        caption:
+          type: string
+        order:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    
+    Template:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        thumbnail:
+          type: string
+          format: uri
+        cssClass:
+          type: string
+    
+    Subscription:
+      type: object
+      properties:
+        id:
+          type: string
+        plan:
+          type: string
+          enum: [basic, premium]
+        status:
+          type: string
+          enum: [active, canceled, past_due]
+        currentPeriodEnd:
+          type: string
+          format: date-time
+    
+    SocialPhoto:
+      type: object
+      properties:
+        id:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+        caption:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+        likes:
+          type: integer
+        comments:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+        photoId:
+          type: string
+        userId:
+          type: string
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+    
+    Challenge:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    
+    ChallengeSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        submissionCount:
+          type: integer
+        createdBy:
+          type: object
+          properties:
+            id:
+              type: string
+            email:
+              type: string
+    
+    ChallengeWithSubmissions:
+      allOf:
+        - $ref: '#/components/schemas/Challenge'
+        - type: object
+          properties:
+            createdBy:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+            submissions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Submission'
+    
+    Submission:
+      type: object
+      properties:
+        id:
+          type: string
+        challengeId:
+          type: string
+        userId:
+          type: string
+        photoId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+        photo:
+          type: object
+          properties:
+            imageUrl:
+              type: string
+              format: uri
+            caption:
+              type: string
+    
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        pages:
+          type: integer
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            message:
+              type: string
+            code:
+              type: string
+

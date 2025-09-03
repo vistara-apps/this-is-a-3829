@@ -1,24 +1,43 @@
 {
   "name": "pet-pic-showcase",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "sideEffects": false,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "remix build",
+    "dev": "remix dev",
+    "start": "remix-serve build",
+    "typecheck": "tsc"
   },
   "dependencies": {
+    "@prisma/client": "^5.10.0",
+    "@remix-run/css-bundle": "^2.8.0",
+    "@remix-run/node": "^2.8.0",
+    "@remix-run/react": "^2.8.0",
+    "@remix-run/serve": "^2.8.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.0.0",
+    "isbot": "^4.1.0",
+    "lucide-react": "^0.263.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "lucide-react": "^0.263.1",
-    "react-router-dom": "^6.8.1"
+    "stripe": "^14.15.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.4.1",
+    "@remix-run/dev": "^2.8.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/react": "^18.2.20",
+    "@types/react-dom": "^18.2.7",
+    "autoprefixer": "^10.4.16",
+    "cypress": "^13.6.4",
+    "eslint": "^8.38.0",
+    "postcss": "^8.4.31",
+    "prisma": "^5.10.0",
     "tailwindcss": "^3.4.11",
-    "postcss": "^8.4.0",
-    "autoprefixer": "^10.4.0"
+    "typescript": "^5.1.6"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
+

@@ -1,0 +1,126 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  subscriptionTier String         @default("basic") // basic, premium
+  galleries       Gallery[]
+  subscriptions   Subscription[]
+  likes           Like[]
+  comments        Comment[]
+  challenges      Challenge[]    @relation("ChallengeParticipants")
+  submissions     Submission[]
+}
+
+model Gallery {
+  id          String   @id @default(uuid())
+  userId      String
+  title       String
+  description String?
+  templateId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  published   Boolean  @default(false)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photos      Photo[]
+  template    Template @relation(fields: [templateId], references: [id])
+}
+
+model Photo {
+  id          String      @id @default(uuid())
+  galleryId   String
+  imageUrl    String
+  caption     String?
+  order       Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  gallery     Gallery     @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  likes       Like[]
+  comments    Comment[]
+  submissions Submission[]
+}
+
+model Template {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  thumbnail   String
+  cssClass    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  galleries   Gallery[]
+}
+
+model Subscription {
+  id            String   @id @default(uuid())
+  userId        String
+  stripeId      String?
+  status        String   // active, canceled, past_due
+  plan          String   // basic, premium
+  currentPeriodEnd DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  userId    String
+  photoId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, photoId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String
+  photoId   String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo     Photo    @relation(fields: [photoId], references: [id], onDelete: Cascade)
+}
+
+model Challenge {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdBy   String
+  creator     User         @relation("ChallengeParticipants", fields: [createdBy], references: [id])
+  submissions Submission[]
+}
+
+model Submission {
+  id          String    @id @default(uuid())
+  challengeId String
+  userId      String
+  photoId     String
+  createdAt   DateTime  @default(now())
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photo       Photo     @relation(fields: [photoId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId, photoId])
+}
+
